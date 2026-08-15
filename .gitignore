@@ -1,0 +1,10 @@
+node_modules
+dist
+.env
+.env.local
+*.log
+
+# Material fuente en bruto del logo (zip + variantes) — los assets finales
+# ya están extraídos en public/ (favicon*.png, apple-touch-icon.png,
+# og-image.png), no hace falta versionar el original.
+logo/
