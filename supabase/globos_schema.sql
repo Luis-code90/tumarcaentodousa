@@ -53,6 +53,21 @@ create table if not exists paquete_items (
 
 create index if not exists idx_paquete_items_paquete on paquete_items (paquete_id);
 
+-- ---- Galería de fotos ----
+-- N fotos por paquete, no una sola: ningún trabajo con globos sale idéntico
+-- al anterior (mismo "Columna Orgánica" puede verse distinto según colores
+-- y ocasión), así que el catálogo público muestra varias fotos de ejemplo
+-- por paquete. orden = 0 es la portada (miniatura en el panel admin).
+create table if not exists paquete_imagenes (
+  id uuid primary key default gen_random_uuid(),
+  paquete_id uuid not null references paquetes_globos (id) on delete cascade,
+  imagen_url text not null,
+  cloudinary_public_id text,
+  orden int not null default 0
+);
+
+create index if not exists idx_paquete_imagenes_paquete on paquete_imagenes (paquete_id);
+
 -- ---- Opciones de precio ----
 -- "1 a N opciones por paquete, sin máximo fijo", igual filosofía que
 -- tramos_precio en Merchandising — pero acá cada fila es una opción con

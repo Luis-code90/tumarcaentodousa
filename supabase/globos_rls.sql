@@ -8,6 +8,7 @@
 -- criterio que productos/colores/tramos_precio en Merchandising.
 alter table paquetes_globos enable row level security;
 alter table paquete_items enable row level security;
+alter table paquete_imagenes enable row level security;
 alter table paquete_precios enable row level security;
 
 create policy "paquetes_globos: lectura pública de activos"
@@ -28,6 +29,17 @@ create policy "paquete_items: lectura pública"
 
 create policy "paquete_items: escritura admin"
   on paquete_items for all
+  to authenticated
+  using (is_admin())
+  with check (is_admin());
+
+create policy "paquete_imagenes: lectura pública"
+  on paquete_imagenes for select
+  to anon, authenticated
+  using (true);
+
+create policy "paquete_imagenes: escritura admin"
+  on paquete_imagenes for all
   to authenticated
   using (is_admin())
   with check (is_admin());

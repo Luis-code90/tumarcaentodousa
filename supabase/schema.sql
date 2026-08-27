@@ -164,6 +164,10 @@ create table if not exists producto_colores (
   producto_id uuid not null references productos (id) on delete cascade,
   color_id text not null references colores (id) on delete restrict,
   orden int not null default 0,
+  -- Foto de esta variante de color específica (ej. remera roja vs. azul).
+  -- Si es NULL, el catálogo cae de vuelta a productos.imagen_url.
+  imagen_url text,
+  cloudinary_public_id text,
   primary key (producto_id, color_id)
 );
 

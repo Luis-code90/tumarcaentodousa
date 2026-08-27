@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useOutletContext } from "react-router-dom";
-import { Check, MessageCircle } from "lucide-react";
+import { Check, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { fetchPaquetes } from "./lib/packages";
 import { createQuoteRequest } from "./lib/quotes";
 import { useDocumentMeta } from "./lib/useDocumentMeta";
@@ -74,43 +74,112 @@ const META = {
   },
 };
 
+// Carrusel simple, sin librería externa: flechas (desktop) + swipe táctil
+// (celular). No pretende ser un carrusel "completo" — solo lo que hace
+// falta para que la clienta pueda pasar 2 a 5 fotos de ejemplo por paquete,
+// que es todo lo que este catálogo necesita.
+function ImageCarousel({ images, alt }) {
+  const [index, setIndex] = useState(0);
+  const [touchStartX, setTouchStartX] = useState(null);
+
+  if (images.length === 0) return null;
+
+  function go(delta) {
+    setIndex((i) => (i + delta + images.length) % images.length);
+  }
+
+  function handleTouchEnd(e) {
+    if (touchStartX === null) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(deltaX) > 40) go(deltaX < 0 ? 1 : -1);
+    setTouchStartX(null);
+  }
+
+  return (
+    <div
+      className="relative w-full aspect-[4/3] overflow-hidden bg-neutral-100"
+      onTouchStart={(e) => setTouchStartX(e.touches[0].clientX)}
+      onTouchEnd={handleTouchEnd}
+    >
+      <img src={images[index]} alt={alt} className="w-full h-full object-cover" loading="lazy" />
+
+      {images.length > 1 && (
+        <>
+          <button
+            type="button"
+            onClick={() => go(-1)}
+            aria-label="previous photo"
+            className="absolute left-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center bg-white/80"
+          >
+            <ChevronLeft size={16} color={COLORS.brown} />
+          </button>
+          <button
+            type="button"
+            onClick={() => go(1)}
+            aria-label="next photo"
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center bg-white/80"
+          >
+            <ChevronRight size={16} color={COLORS.brown} />
+          </button>
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+            {images.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                aria-label={`photo ${i + 1}`}
+                onClick={() => setIndex(i)}
+                className="w-1.5 h-1.5 rounded-full"
+                style={{ backgroundColor: i === index ? COLORS.white : "rgba(255,255,255,0.5)" }}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function PackageCard({ pkg, lang, t }) {
   const nombre = lang === "en" ? pkg.nombre_en : pkg.nombre_es;
 
   return (
     <div
-      className="rounded-2xl p-5 flex flex-col gap-4"
+      className="rounded-2xl overflow-hidden flex flex-col pb-5"
       style={{ backgroundColor: COLORS.white, border: `1px solid ${COLORS.line}` }}
     >
-      <h3 className="text-xl" style={{ fontFamily: "Georgia, serif", color: COLORS.brown }}>
-        {nombre}
-      </h3>
+      <ImageCarousel images={pkg.imagenes} alt={nombre} />
 
-      <div>
-        <p className="text-[11px] uppercase tracking-widest font-semibold mb-1.5" style={{ color: COLORS.roseDark }}>
-          {t.includes}
-        </p>
-        <ul className="flex flex-col gap-1">
-          {pkg.incluye.map((item, i) => (
-            <li key={i} className="flex items-start gap-2 text-sm text-neutral-600">
-              <Check size={14} className="mt-0.5 shrink-0" color={COLORS.rose} />
-              <span>{lang === "en" ? item.en : item.es}</span>
-            </li>
+      <div className="px-5 pt-5 flex flex-col gap-4">
+        <h3 className="text-xl" style={{ fontFamily: "Georgia, serif", color: COLORS.brown }}>
+          {nombre}
+        </h3>
+
+        <div>
+          <p className="text-[11px] uppercase tracking-widest font-semibold mb-1.5" style={{ color: COLORS.roseDark }}>
+            {t.includes}
+          </p>
+          <ul className="flex flex-col gap-1">
+            {pkg.incluye.map((item, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm text-neutral-600">
+                <Check size={14} className="mt-0.5 shrink-0" color={COLORS.rose} />
+                <span>{lang === "en" ? item.en : item.es}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="flex flex-wrap gap-2 mt-auto pt-1">
+          {pkg.precios.map((pr, i) => (
+            <span
+              key={i}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5"
+              style={{ backgroundColor: COLORS.blushDeep, color: COLORS.brown }}
+            >
+              {lang === "en" ? pr.etiqueta_en : pr.etiqueta_es}
+              <span style={{ color: COLORS.roseDark }}>${pr.precio}</span>
+            </span>
           ))}
-        </ul>
-      </div>
-
-      <div className="flex flex-wrap gap-2 mt-auto pt-1">
-        {pkg.precios.map((pr, i) => (
-          <span
-            key={i}
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5"
-            style={{ backgroundColor: COLORS.blushDeep, color: COLORS.brown }}
-          >
-            {lang === "en" ? pr.etiqueta_en : pr.etiqueta_es}
-            <span style={{ color: COLORS.roseDark }}>${pr.precio}</span>
-          </span>
-        ))}
+        </div>
       </div>
     </div>
   );

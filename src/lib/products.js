@@ -6,9 +6,16 @@ import { supabase } from "./supabase";
 // detalle_en, detalle_es, colores: string[], tallas: string[],
 // tramos: [{ min, max, precio }] }.
 function mapProducto(row) {
-  const colores = [...row.producto_colores]
-    .sort((a, b) => a.orden - b.orden)
-    .map((pc) => pc.color_id);
+  const sortedColores = [...row.producto_colores].sort((a, b) => a.orden - b.orden);
+  const colores = sortedColores.map((pc) => pc.color_id);
+
+  // Foto por variante de color (ej. remera roja vs. azul), con fallback al
+  // imagen_url general del producto cuando ese color todavía no tiene foto
+  // propia cargada desde el panel de admin.
+  const imagenesPorColor = {};
+  for (const pc of sortedColores) {
+    if (pc.imagen_url) imagenesPorColor[pc.color_id] = pc.imagen_url;
+  }
 
   const tallas = [...row.producto_tallas]
     .sort((a, b) => a.orden - b.orden)
@@ -37,6 +44,7 @@ function mapProducto(row) {
     detalle_en: row.detalle_en,
     detalle_es: row.detalle_es,
     imagen_url: row.imagen_url,
+    imagenesPorColor,
     colores,
     tallas,
     tramos,
@@ -59,7 +67,7 @@ export async function fetchProducts() {
       detalle_en,
       detalle_es,
       imagen_url,
-      producto_colores ( orden, color_id ),
+      producto_colores ( orden, color_id, imagen_url ),
       producto_tallas ( orden, talla ),
       tramos_precio ( cantidad_min, cantidad_max, precio )
     `

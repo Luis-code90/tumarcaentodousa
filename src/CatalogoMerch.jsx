@@ -163,12 +163,25 @@ function ProductCard({ product, lang, t, onAdd }) {
   const price = priceFor(product, qty);
   const nombre = lang === "en" ? product.nombre_en : product.nombre_es;
   const detalle = lang === "en" ? product.detalle_en : product.detalle_es;
+  // Foto de la variante de color elegida; si ese color no tiene foto propia
+  // cargada todavía, cae de vuelta a la imagen general del producto.
+  const imagen = product.imagenesPorColor?.[color] || product.imagen_url;
 
   return (
     <div
-      className="rounded-2xl p-4 flex flex-col gap-3"
+      className="rounded-2xl overflow-hidden flex flex-col pb-4"
       style={{ backgroundColor: COLORS.white, border: `1px solid ${COLORS.line}` }}
     >
+      {imagen && (
+        <img
+          src={imagen}
+          alt={nombre}
+          className="w-full aspect-square object-cover"
+          loading="lazy"
+        />
+      )}
+
+      <div className="px-4 pt-4 flex flex-col gap-3">
       <div>
         <p
           className="text-[11px] uppercase tracking-widest font-semibold"
@@ -260,6 +273,7 @@ function ProductCard({ product, lang, t, onAdd }) {
         >
           {t.add}
         </button>
+      </div>
       </div>
     </div>
   );
