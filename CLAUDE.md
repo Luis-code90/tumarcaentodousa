@@ -41,7 +41,7 @@ No hay tests, linter ni TypeScript.
 - Roles: `profiles.role` (`customer`/`admin`). Solo se promueve a admin a mano desde el dashboard de Supabase (`update profiles set role='admin'`); el front no puede cambiar `role` (GRANT por columna). No hay signup público.
 - `.env` está gitignoreado; plantilla en `.env.example`. Variables `VITE_*` van al bundle (son públicas por diseño: anon key, cloud name, preset). **Nunca** poner `service_role` ni API secret de Cloudinary en el front.
 - Dominio objetivo en las meta tags/sitemap/robots: `https://www.tumarcaentodousa.com`. Verificar que coincida con el dominio comprado antes de publicar.
-- Hosting aún no definido: hay `vercel.json` y `public/_redirects` (Netlify/Cloudflare). Ambos hacen rewrite SPA → `index.html`.
+- Hosting: **Vercel** (config en `vercel.json`: rewrite SPA, headers de seguridad/CSP, cache de `/assets`). Dominio comprado en **Porkbun**; DNS apunta a Vercel. Si se agrega un host de imágenes o API nuevo, actualizar `img-src`/`connect-src` en la CSP de `vercel.json`.
 - Los previews de WhatsApp/redes leen solo el `index.html` estático, así que son iguales para las 3 rutas (ver `useDocumentMeta.js`).
 
 ## Preferencias de trabajo
@@ -52,12 +52,12 @@ No hay tests, linter ni TypeScript.
 
 ## Pendientes conocidos (auditoría 2026-10-03)
 
-Hecho en código: WhatsApp se abre síncrono en el click (`lib/whatsapp.js`, no volver a poner `window.open` después de un `await`), carrito editable + mensaje de éxito, 404, footer y botón flotante de WhatsApp, idioma por navegador, imágenes Cloudinary optimizadas (`lib/images.js`), `noindex` en admin, headers de seguridad/CSP en `vercel.json` y `public/_headers` (si se agrega un host nuevo para imágenes o APIs, actualizar `img-src`/`connect-src`), y `supabase/hardening_inserts_publicos.sql`.
+Hecho en código: WhatsApp se abre síncrono en el click (`lib/whatsapp.js`, no volver a poner `window.open` después de un `await`), carrito editable + mensaje de éxito, 404, footer y botón flotante de WhatsApp, idioma por navegador, imágenes Cloudinary optimizadas (`lib/images.js`), `noindex` en admin, headers de seguridad/CSP en `vercel.json`, y `supabase/hardening_inserts_publicos.sql` (ya ejecutado en Supabase). Hosting elegido: Vercel.
 
 Pendiente de hacer a mano (fuera del código):
 
-1. Correr `supabase/hardening_inserts_publicos.sql` en el SQL Editor.
-2. Verificar en Cloudinary que el preset unsigned tenga formatos, tamaño y carpeta restringidos.
-3. Elegir hosting (borrar `vercel.json` o `_redirects`/`_headers` según corresponda) y confirmar el dominio en meta tags/sitemap/robots.
+1. Verificar en Cloudinary que el preset unsigned tenga formatos, tamaño y carpeta restringidos.
+2. Conectar el dominio de Porkbun a Vercel y confirmar que coincide con las meta tags/sitemap/robots.
+3. Variables `VITE_*` cargadas en Vercel (Settings → Environment Variables).
 4. Política de privacidad, MFA admin, deshabilitar signup público en Supabase Auth, backups.
 5. Probar el checkout en un iPhone y un Android reales.
