@@ -1,11 +1,13 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../lib/auth";
+import { useNoIndex } from "../lib/useNoIndex";
 
 const linkClass = ({ isActive }) =>
   `px-3 py-1.5 rounded-lg text-sm font-medium ${isActive ? "bg-neutral-800 text-white" : "text-neutral-600 hover:bg-neutral-200"}`;
 
 export default function AdminLayout() {
   const { session, signOut } = useAuth();
+  useNoIndex();
 
   return (
     <div className="min-h-screen bg-neutral-100">

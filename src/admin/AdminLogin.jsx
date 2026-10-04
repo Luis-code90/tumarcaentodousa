@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
+import { useNoIndex } from "../lib/useNoIndex";
 
 // No hay formulario de registro acá a propósito: las cuentas de admin se
 // crean desde el Dashboard de Supabase (Authentication → Add user) y se
@@ -9,6 +10,7 @@ import { useAuth } from "../lib/auth";
 // para un panel de dos personas.
 export default function AdminLogin() {
   const { session, loading, signIn } = useAuth();
+  useNoIndex();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);

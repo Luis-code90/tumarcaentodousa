@@ -4,6 +4,8 @@ import { ShoppingBag, X, Plus, Minus, Check, MessageCircle } from "lucide-react"
 import { fetchProducts } from "./lib/products";
 import { createOrder } from "./lib/orders";
 import { useDocumentMeta } from "./lib/useDocumentMeta";
+import { whatsappUrl, openWhatsAppThenSave } from "./lib/whatsapp";
+import { optimizeImage } from "./lib/images";
 
 const META = {
   en: {
@@ -29,8 +31,6 @@ const COLORS = {
   line: "#E4D6BC",
 };
 
-const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || "14079906841";
-
 // ---- UI strings, mirrors the _en/_es column pattern planned for Supabase ----
 const UI = {
   en: {
@@ -39,6 +39,9 @@ const UI = {
     add: "Add",
     yourOrder: "Your order",
     empty: "You haven't added any products yet.",
+    emptyCategory: "No products in this category yet.",
+    sent: "Order sent! We'll confirm it with you on WhatsApp. If WhatsApp didn't open, tap below.",
+    reopen: "Open WhatsApp again",
     remove: "Remove",
     total: "Estimated total",
     confirmWhatsapp: "Confirm via WhatsApp",
@@ -65,6 +68,9 @@ const UI = {
     add: "Agregar",
     yourOrder: "Tu pedido",
     empty: "Todavía no agregaste productos.",
+    emptyCategory: "Todavía no hay productos en esta categoría.",
+    sent: "¡Pedido enviado! Lo confirmamos con vos por WhatsApp. Si no se abrió, tocá abajo.",
+    reopen: "Abrir WhatsApp de nuevo",
     remove: "Quitar",
     total: "Total estimado",
     confirmWhatsapp: "Confirmar por WhatsApp",
@@ -174,7 +180,7 @@ function ProductCard({ product, lang, t, onAdd }) {
     >
       {imagen && (
         <img
-          src={imagen}
+          src={optimizeImage(imagen, 600)}
           alt={nombre}
           className="w-full aspect-square object-cover"
           loading="lazy"
@@ -286,7 +292,9 @@ function CartDrawer({
   lang,
   t,
   onRemove,
+  onChangeQty,
   onCheckout,
+  sentUrl,
   clienteNombre,
   clienteTelefono,
   onClienteNombreChange,
@@ -340,8 +348,27 @@ function CartDrawer({
                     </p>
                     <p className="text-xs text-neutral-500">
                       {it.colorLabel}
-                      {it.talla !== "Única" ? ` · ${t.size} ${it.talla}` : ""} · x{it.qty}
+                      {it.talla !== "Única" ? ` · ${t.size} ${it.talla}` : ""} · ${it.price} {t.perUnit}
                     </p>
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <button
+                        onClick={() => onChangeQty(i, it.qty - 1)}
+                        aria-label="minus"
+                        className="w-6 h-6 rounded-md flex items-center justify-center"
+                        style={{ border: `1px solid ${COLORS.line}` }}
+                      >
+                        <Minus size={12} />
+                      </button>
+                      <span className="text-xs font-medium min-w-[2ch] text-center">{it.qty}</span>
+                      <button
+                        onClick={() => onChangeQty(i, it.qty + 1)}
+                        aria-label="plus"
+                        className="w-6 h-6 rounded-md flex items-center justify-center"
+                        style={{ border: `1px solid ${COLORS.line}` }}
+                      >
+                        <Plus size={12} />
+                      </button>
+                    </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-medium">${it.price * it.qty}</span>
@@ -373,6 +400,19 @@ function CartDrawer({
               className="w-full px-3 py-2 rounded-lg text-sm"
               style={{ border: `1px solid ${COLORS.line}`, backgroundColor: COLORS.white }}
             />
+          </div>
+        )}
+
+        {sentUrl && (
+          <div
+            className="rounded-xl p-3 text-sm flex flex-col gap-2"
+            style={{ backgroundColor: COLORS.white, border: `1px solid ${COLORS.line}`, color: COLORS.charcoal }}
+            role="status"
+          >
+            <p>{t.sent}</p>
+            <a href={sentUrl} target="_blank" rel="noopener noreferrer" className="font-semibold underline">
+              {t.reopen}
+            </a>
           </div>
         )}
 
@@ -428,6 +468,7 @@ export default function CatalogoMerch() {
   const [cartOpen, setCartOpen] = useState(false);
   const [clienteNombre, setClienteNombre] = useState("");
   const [clienteTelefono, setClienteTelefono] = useState("");
+  const [sentUrl, setSentUrl] = useState(null);
 
   // Cart items need the full product object (for pricing/labels), not just
   // an id, so hydration from localStorage has to wait until the catalog
@@ -496,7 +537,14 @@ export default function CatalogoMerch() {
       next[idx] = { ...next[idx], qty: newQty, price: priceFor(item.product, newQty) };
       return next;
     });
+    setSentUrl(null);
     setCartOpen(true);
+  }
+
+  function changeQty(idx, qty) {
+    if (qty < 1) return removeFromCart(idx);
+    const next = Math.min(999, qty);
+    setCart((c) => c.map((it, i) => (i === idx ? { ...it, qty: next, price: priceFor(it.product, next) } : it)));
   }
 
   function removeFromCart(idx) {
@@ -506,29 +554,28 @@ export default function CatalogoMerch() {
   async function checkout() {
     if (!cart.length || !clienteNombre.trim() || !clienteTelefono.trim()) return;
 
-    try {
-      await createOrder({
-        items: cart,
-        clienteNombre: clienteNombre.trim(),
-        clienteTelefono: clienteTelefono.trim(),
-        idioma: lang,
-      });
-    } catch (err) {
-      // WhatsApp is still the real confirmation channel for this business,
-      // so a failed write to our own records shouldn't block the customer
-      // from placing the order — just log it for follow-up.
-      console.error("Failed to save order to Supabase:", err);
-    }
-
     const lines = cart.map((it) => {
       const nombre = lang === "en" ? it.product.nombre_en : it.product.nombre_es;
       const sizePart = it.talla !== "Única" ? `, ${t.size.toLowerCase()} ${it.talla}` : "";
       return `• ${nombre} — ${it.colorLabel}${sizePart} x${it.qty} — $${it.price * it.qty}`;
     });
     const total = cart.reduce((s, it) => s + it.price * it.qty, 0);
-    const msg = t.whatsappMsg(lines, total);
-    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
-    window.open(url, "_blank");
+    const url = whatsappUrl(t.whatsappMsg(lines, total));
+    const snapshot = cart;
+
+    // WhatsApp must open synchronously in the click (mobile popup rules);
+    // the Supabase save runs right after, see lib/whatsapp.js.
+    await openWhatsAppThenSave(url, () =>
+      createOrder({
+        items: snapshot,
+        clienteNombre: clienteNombre.trim(),
+        clienteTelefono: clienteTelefono.trim(),
+        idioma: lang,
+      })
+    );
+
+    setSentUrl(url);
+    setCart([]);
   }
 
   return (
@@ -582,7 +629,10 @@ export default function CatalogoMerch() {
           {t.loadError}
         </p>
       )}
-      {catalogStatus === "ready" && (
+      {catalogStatus === "ready" && filtered.length === 0 && (
+        <p className="px-5 py-10 text-center text-sm text-neutral-500">{t.emptyCategory}</p>
+      )}
+      {catalogStatus === "ready" && filtered.length > 0 && (
         <main className="px-5 pb-24 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((p) => (
             <ProductCard key={p.id} product={p} lang={lang} t={t} onAdd={addToCart} />
@@ -597,6 +647,8 @@ export default function CatalogoMerch() {
         lang={lang}
         t={t}
         onRemove={removeFromCart}
+        onChangeQty={changeQty}
+        sentUrl={sentUrl}
         onCheckout={checkout}
         clienteNombre={clienteNombre}
         clienteTelefono={clienteTelefono}

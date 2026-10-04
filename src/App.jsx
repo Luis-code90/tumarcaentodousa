@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./lib/auth";
 import Layout from "./Layout";
 import Landing from "./pages/Landing";
+import NotFound from "./pages/NotFound";
 import CatalogoMerch from "./CatalogoMerch";
 import Globos from "./Globos";
 import AdminLogin from "./admin/AdminLogin";
@@ -21,6 +22,7 @@ export default function App() {
             <Route path="/" element={<Landing />} />
             <Route path="/merch" element={<CatalogoMerch />} />
             <Route path="/globos" element={<Globos />} />
+            <Route path="*" element={<NotFound />} />
           </Route>
 
           <Route path="/admin/login" element={<AdminLogin />} />

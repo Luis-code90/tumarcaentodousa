@@ -4,8 +4,8 @@ import { Check, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { fetchPaquetes } from "./lib/packages";
 import { createQuoteRequest } from "./lib/quotes";
 import { useDocumentMeta } from "./lib/useDocumentMeta";
-
-const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || "14079906841";
+import { whatsappUrl, openWhatsAppThenSave } from "./lib/whatsapp";
+import { optimizeImage } from "./lib/images";
 
 // ---- Design tokens — blush/rose palette lifted from the balloon PDF ----
 const COLORS = {
@@ -38,6 +38,8 @@ const UI = {
     submit: "Send via WhatsApp",
     submitting: "Sending…",
     requiredHint: "Name and phone are required.",
+    sent: "Request sent! We'll reply on WhatsApp. If it didn't open, tap here:",
+    reopen: "Open WhatsApp",
   },
   es: {
     heading: "Paquetes de Decoración con Globos",
@@ -58,6 +60,8 @@ const UI = {
     submit: "Enviar por WhatsApp",
     submitting: "Enviando…",
     requiredHint: "Nombre y teléfono son obligatorios.",
+    sent: "¡Solicitud enviada! Te respondemos por WhatsApp. Si no se abrió, tocá acá:",
+    reopen: "Abrir WhatsApp",
   },
 };
 
@@ -101,7 +105,7 @@ function ImageCarousel({ images, alt }) {
       onTouchStart={(e) => setTouchStartX(e.touches[0].clientX)}
       onTouchEnd={handleTouchEnd}
     >
-      <img src={images[index]} alt={alt} className="w-full h-full object-cover" loading="lazy" />
+      <img src={optimizeImage(images[index], 800)} alt={alt} className="w-full h-full object-cover" loading="lazy" />
 
       {images.length > 1 && (
         <>
@@ -199,6 +203,7 @@ export default function Globos() {
   const [paqueteInteres, setPaqueteInteres] = useState("");
   const [notas, setNotas] = useState("");
   const [formStatus, setFormStatus] = useState("idle"); // idle | submitting | sent
+  const [sentUrl, setSentUrl] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -230,19 +235,6 @@ export default function Globos() {
     if (!canSubmit) return;
 
     setFormStatus("submitting");
-    try {
-      await createQuoteRequest({
-        nombre: nombre.trim(),
-        telefono: telefono.trim(),
-        fechaEvento: fechaEvento || null,
-        paqueteInteres: paqueteInteres || null,
-        notas: notas.trim() || null,
-      });
-    } catch (err) {
-      // Same philosophy as merch checkout: WhatsApp is the real channel,
-      // a failed internal save shouldn't block the client from reaching out.
-      console.error("Failed to save quote request to Supabase:", err);
-    }
 
     const paqueteNombre = selectedPaquete
       ? lang === "en"
@@ -260,8 +252,20 @@ export default function Globos() {
     if (paqueteNombre) lines.push(`${t.packageInterest}: ${paqueteNombre}`);
     if (notas.trim()) lines.push(`${t.notes}: ${notas.trim()}`);
 
-    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(lines.join("\n"))}`;
-    window.open(url, "_blank");
+    const url = whatsappUrl(lines.join("\n"));
+    setSentUrl(url);
+
+    // WhatsApp opens synchronously in the click (mobile popup rules); the
+    // Supabase save follows — see lib/whatsapp.js.
+    await openWhatsAppThenSave(url, () =>
+      createQuoteRequest({
+        nombre: nombre.trim(),
+        telefono: telefono.trim(),
+        fechaEvento: fechaEvento || null,
+        paqueteInteres: paqueteInteres || null,
+        notas: notas.trim() || null,
+      })
+    );
     setFormStatus("sent");
   }
 
@@ -364,6 +368,14 @@ export default function Globos() {
           {formStatus === "submitting" ? t.submitting : t.submit}
         </button>
         <p className="text-xs text-neutral-400 text-center">{t.requiredHint}</p>
+        {formStatus === "sent" && sentUrl && (
+          <p className="text-sm text-center" role="status" style={{ color: COLORS.brown }}>
+            {t.sent}{" "}
+            <a href={sentUrl} target="_blank" rel="noopener noreferrer" className="font-semibold underline">
+              {t.reopen}
+            </a>
+          </p>
+        )}
       </form>
     </div>
   );
