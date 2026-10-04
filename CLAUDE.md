@@ -32,7 +32,8 @@ No hay tests, linter ni TypeScript.
 ## Convenciones y gotchas
 
 - Esquema en **español** (tablas/columnas: `productos`, `tramos_precio`, `paquetes_globos`...), textos bilingües como columnas `_en`/`_es` (no JSON).
-- Los slugs de categoría (`Ofertas` (combos; su pestaña va primera y solo se muestra si hay productos activos), `Remeras`, `Buzos`, `Gorras`, `Mugs`, `Tumblers`, `Delantales`) y de color (`negro`, `azul`...) están **hardcodeados también en el front** (`CATEGORY_KEYS`, `SWATCHES`, `COLOR_NAMES` en `CatalogoMerch.jsx`). Una categoría o color nuevo en la DB necesita cambio de código. Los slugs `Remeras` y `Buzos` son identificadores internos y **no se renombran**; el texto visible en español es "Camisetas" y "Suéteres" (se cambia en `UI.es.categories` y en `categorias.nombre_es`). Vocabulario del cliente: camisetas (no remeras), suéteres (no buzos).
+- Los slugs de categoría (`Remeras`, `Buzos`, `Gorras`, `Mugs`, `Tumblers`, `Delantales`) y de color (`negro`, `azul`...) están **hardcodeados también en el front** (`CATEGORY_KEYS`, `SWATCHES`, `COLOR_NAMES` en `CatalogoMerch.jsx`). Una categoría o color nuevo en la DB necesita cambio de código. Los slugs `Remeras` y `Buzos` son identificadores internos y **no se renombran**; el texto visible en español es "Camisetas" y "Suéteres" (se cambia en `UI.es.categories` y en `categorias.nombre_es`). Vocabulario del cliente: camisetas (no remeras), suéteres (no buzos).
+- **Combos / Ofertas** (`combos`, `combo_items`; SQL en `supabase/combos_schema.sql`): un combo es N unidades de varios productos del catálogo a un precio cerrado (ej. 5 camisetas + 1 hoodie = $100). La pestaña "Ofertas" es virtual (no es una categoría), va primera y solo aparece si hay combos activos. El cliente elige color y talla de cada pieza (`components/ComboCard.jsx`); con N combos son N × piezas. Los pedidos se guardan en `pedido_combos` + `pedido_combo_piezas`; el precio y el total los fija el servidor (triggers). Admin en `/admin/ofertas`. Un combo no se ofrece si algún producto componente está inactivo o sin colores/tallas.
 - Talla `"Única"` es un valor centinela: oculta el selector de talla.
 - `tramos_precio.cantidad_max NULL` = tramo abierto (en el front se mapea a `Infinity`). Un `EXCLUDE` impide tramos superpuestos.
 - Carrito en `localStorage` (`tumarcaentodo_cart_v1`) guarda solo ids; se rehidrata y re-precia con el catálogo fresco.
@@ -56,6 +57,7 @@ Hecho en código: WhatsApp se abre síncrono en el click (`lib/whatsapp.js`, no 
 
 Pendiente de hacer a mano (fuera del código):
 
+0. Correr `supabase/combos_schema.sql` (combos) en el SQL Editor.
 1. Verificar en Cloudinary que el preset unsigned tenga formatos, tamaño y carpeta restringidos.
 2. Conectar el dominio de Porkbun a Vercel y confirmar que coincide con las meta tags/sitemap/robots.
 3. Variables `VITE_*` cargadas en Vercel (Settings → Environment Variables).

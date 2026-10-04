@@ -12,6 +12,8 @@ import MerchList from "./admin/MerchList";
 import MerchForm from "./admin/MerchForm";
 import GlobosList from "./admin/GlobosList";
 import GlobosForm from "./admin/GlobosForm";
+import ComboList from "./admin/ComboList";
+import ComboForm from "./admin/ComboForm";
 
 export default function App() {
   return (
@@ -41,6 +43,9 @@ export default function App() {
             <Route path="globos" element={<GlobosList />} />
             <Route path="globos/nuevo" element={<GlobosForm />} />
             <Route path="globos/:slug" element={<GlobosForm />} />
+            <Route path="ofertas" element={<ComboList />} />
+            <Route path="ofertas/nuevo" element={<ComboForm />} />
+            <Route path="ofertas/:slug" element={<ComboForm />} />
           </Route>
         </Routes>
       </BrowserRouter>

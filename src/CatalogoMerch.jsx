@@ -2,10 +2,13 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { useOutletContext } from "react-router-dom";
 import { ShoppingBag, X, Plus, Minus, Check, MessageCircle } from "lucide-react";
 import { fetchProducts } from "./lib/products";
+import { fetchCombos } from "./lib/combos";
+import ComboCard from "./components/ComboCard";
 import { createOrder } from "./lib/orders";
 import { useDocumentMeta } from "./lib/useDocumentMeta";
 import { whatsappUrl, openWhatsAppThenSave } from "./lib/whatsapp";
 import { optimizeImage } from "./lib/images";
+import { COLORS, SWATCHES, COLOR_NAMES } from "./lib/merchTokens";
 
 const META = {
   en: {
@@ -20,17 +23,6 @@ const META = {
   },
 };
 
-// ---- Design tokens ----
-const COLORS = {
-  amber: "#E8952E",
-  amberDark: "#B8701A",
-  charcoal: "#2B2A27",
-  cream: "#FBF4E8",
-  creamDeep: "#F3E7D3",
-  white: "#FFFFFF",
-  line: "#E4D6BC",
-};
-
 // ---- UI strings, mirrors the _en/_es column pattern planned for Supabase ----
 const UI = {
   en: {
@@ -40,6 +32,8 @@ const UI = {
     yourOrder: "Your order",
     empty: "You haven't added any products yet.",
     emptyCategory: "No products in this category yet.",
+    viewSelection: (n) => `View selection (${n} pieces)`,
+    comboWord: "Combo",
     sent: "Order sent! We'll confirm it with you on WhatsApp. If WhatsApp didn't open, tap below.",
     reopen: "Open WhatsApp again",
     remove: "Remove",
@@ -70,6 +64,8 @@ const UI = {
     yourOrder: "Tu pedido",
     empty: "Todavía no agregaste productos.",
     emptyCategory: "Todavía no hay productos en esta categoría.",
+    viewSelection: (n) => `Ver selección (${n} piezas)`,
+    comboWord: "Combo",
     sent: "¡Pedido enviado! Lo confirmamos con vos por WhatsApp. Si no se abrió, tocá abajo.",
     reopen: "Abrir WhatsApp de nuevo",
     remove: "Quitar",
@@ -96,34 +92,6 @@ const UI = {
 };
 
 const CATEGORY_KEYS = ["Ofertas", "Remeras", "Buzos", "Gorras", "Mugs", "Tumblers", "Delantales"];
-
-const SWATCHES = {
-  negro: "#1a1a1a",
-  blanco: "#f5f5f5",
-  gris: "#8a8a8a",
-  azul: "#2f5fa8",
-  rojo: "#c1272d",
-  amarillo: "#f2c230",
-  verde: "#3f7d4f",
-  rosa: "#e8a3b8",
-  bordo: "#6d2530",
-  celeste: "#a8d3e6",
-  dorado: "#c9a86a",
-};
-
-const COLOR_NAMES = {
-  negro: { en: "Black", es: "Negro" },
-  blanco: { en: "White", es: "Blanco" },
-  gris: { en: "Grey", es: "Gris" },
-  azul: { en: "Blue", es: "Azul" },
-  rojo: { en: "Red", es: "Rojo" },
-  amarillo: { en: "Yellow", es: "Amarillo" },
-  verde: { en: "Green", es: "Verde" },
-  rosa: { en: "Pink", es: "Rosa" },
-  bordo: { en: "Maroon", es: "Bordo" },
-  celeste: { en: "Light blue", es: "Celeste" },
-  dorado: { en: "Gold", es: "Dorado" },
-};
 
 // Catalog is fetched from Supabase via fetchProducts() (see
 // src/lib/products.js), which maps productos + producto_colores +
@@ -287,6 +255,47 @@ function ProductCard({ product, lang, t, onAdd }) {
   );
 }
 
+// "T-Shirt Gildan — Negro, talla M"
+function pieceText(p, lang, t) {
+  const nombre = lang === "en" ? p.producto.nombre_en : p.producto.nombre_es;
+  const color = p.colorLabel || COLOR_NAMES[p.color]?.[lang] || p.color;
+  const size = p.talla && p.talla !== "Única" ? `, ${t.size.toLowerCase()} ${p.talla}` : "";
+  return `${nombre} — ${color}${size}`;
+}
+
+function ComboCartLine({ it, lang, t, onRemove }) {
+  const nombre = lang === "en" ? it.combo.nombre_en : it.combo.nombre_es;
+  return (
+    <div
+      className="flex items-start justify-between rounded-xl p-3 gap-3"
+      style={{ backgroundColor: COLORS.white, border: `1px solid ${COLORS.line}` }}
+    >
+      <div className="min-w-0">
+        <p className="text-sm font-semibold" style={{ color: COLORS.charcoal }}>
+          {nombre} <span className="text-neutral-400 font-normal">x{it.qty}</span>
+        </p>
+        <details className="mt-1">
+          <summary className="text-xs text-neutral-500 cursor-pointer">{t.viewSelection(it.piezas.length)}</summary>
+          <ul className="mt-1 flex flex-col gap-0.5 text-xs text-neutral-500">
+            {it.piezas.map((p, i) => (
+              <li key={i}>
+                {it.qty > 1 ? `${t.comboWord} ${p.unidad} · ` : ""}
+                {pieceText(p, lang, t)}
+              </li>
+            ))}
+          </ul>
+        </details>
+      </div>
+      <div className="flex items-center gap-3 shrink-0">
+        <span className="text-sm font-medium">${it.price * it.qty}</span>
+        <button onClick={onRemove} aria-label={t.remove}>
+          <X size={15} color="#999" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function CartDrawer({
   open,
   onClose,
@@ -337,6 +346,9 @@ function CartDrawer({
         ) : (
           <div className="flex-1 overflow-y-auto flex flex-col gap-3">
             {items.map((it, i) => {
+              if (it.kind === "combo") {
+                return <ComboCartLine key={i} it={it} lang={lang} t={t} onRemove={() => onRemove(i)} />;
+              }
               const nombre = lang === "en" ? it.product.nombre_en : it.product.nombre_es;
               return (
                 <div
@@ -446,9 +458,21 @@ const CART_STORAGE_KEY = "tumarcaentodo_cart_v1";
 // Takes the fetched products list explicitly because it now only exists as
 // component state, not as a module-level constant — a product removed from
 // Supabase since the cart was saved is silently dropped from the cart.
-function hydrateCart(rawItems, products) {
+function hydrateCart(rawItems, products, combos) {
   return rawItems
     .map((it) => {
+      if (it.kind === "combo") {
+        const combo = combos.find((c) => c.id === it.comboId);
+        if (!combo) return null;
+        // Se rearman las piezas con los productos actuales del combo; si
+        // alguna ya no existe o cambió la composición, se descarta la línea.
+        const piezas = it.piezas.map((p) => {
+          const producto = combo.items.map((ci) => ci.producto).find((pr) => pr.id === p.productId);
+          return producto ? { unidad: p.unidad, producto, color: p.color, talla: p.talla } : null;
+        });
+        if (piezas.some((p) => !p)) return null;
+        return { kind: "combo", combo, qty: it.qty, price: combo.precio, piezas };
+      }
       const product = products.find((p) => p.id === it.productId);
       if (!product) return null;
       return { ...it, product, price: priceFor(product, it.qty) };
@@ -465,6 +489,7 @@ export default function CatalogoMerch() {
 
   const [cat, setCat] = useState("Remeras");
   const [products, setProducts] = useState([]);
+  const [combos, setCombos] = useState([]);
   const [catalogStatus, setCatalogStatus] = useState("loading"); // loading | ready | error
   const [cart, setCart] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
@@ -480,13 +505,22 @@ export default function CatalogoMerch() {
 
   useEffect(() => {
     let cancelled = false;
-    fetchProducts()
-      .then((data) => {
+    // Los combos son opcionales: si fallan (p. ej. falta correr
+    // supabase/combos_schema.sql) el catálogo normal sigue funcionando.
+    Promise.all([
+      fetchProducts(),
+      fetchCombos().catch((err) => {
+        console.error("Failed to load combos from Supabase:", err);
+        return [];
+      }),
+    ])
+      .then(([data, comboData]) => {
         if (cancelled) return;
         setProducts(data);
+        setCombos(comboData);
         // Si hay combos cargados, la pestaña Ofertas es la primera y la que
         // se abre por defecto.
-        if (data.some((p) => p.categoria === "Ofertas")) setCat("Ofertas");
+        if (comboData.length > 0) setCat("Ofertas");
         setCatalogStatus("ready");
       })
       .catch((err) => {
@@ -504,25 +538,39 @@ export default function CatalogoMerch() {
     cartHydrated.current = true;
     try {
       const raw = localStorage.getItem(CART_STORAGE_KEY);
-      if (raw) setCart(hydrateCart(JSON.parse(raw), products));
+      if (raw) setCart(hydrateCart(JSON.parse(raw), products, combos));
     } catch {
       // storage unavailable or corrupted — start with an empty cart
     }
-  }, [catalogStatus, products]);
+  }, [catalogStatus, products, combos]);
 
   const filtered = useMemo(() => products.filter((p) => p.categoria === cat), [products, cat]);
-  const hasOffers = useMemo(() => products.some((p) => p.categoria === "Ofertas"), [products]);
-  const cartCount =cart.reduce((s, it) => s + it.qty, 0);
+  const hasOffers = combos.length > 0;
+  const cartCount = cart.reduce((s, it) => s + it.qty, 0);
 
   useEffect(() => {
     try {
-      const serializable = cart.map((it) => ({
-        productId: it.product.id,
-        color: it.color,
-        colorLabel: it.colorLabel,
-        talla: it.talla,
-        qty: it.qty,
-      }));
+      const serializable = cart.map((it) =>
+        it.kind === "combo"
+          ? {
+              kind: "combo",
+              comboId: it.combo.id,
+              qty: it.qty,
+              piezas: it.piezas.map((p) => ({
+                unidad: p.unidad,
+                productId: p.producto.id,
+                color: p.color,
+                talla: p.talla,
+              })),
+            }
+          : {
+              productId: it.product.id,
+              color: it.color,
+              colorLabel: it.colorLabel,
+              talla: it.talla,
+              qty: it.qty,
+            }
+      );
       localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(serializable));
     } catch {
       // storage unavailable (e.g. private browsing) — fail silently, cart still works in-session
@@ -530,9 +578,18 @@ export default function CatalogoMerch() {
   }, [cart]);
 
   function addToCart(item) {
+    if (item.kind === "combo") {
+      // Cada combo agregado es su propia línea (cada uno tiene sus
+      // elecciones de color/talla), no se fusionan entre sí.
+      setCart((c) => [...c, item]);
+      setSentUrl(null);
+      setCartOpen(true);
+      return;
+    }
     setCart((c) => {
       const idx = c.findIndex(
         (it) =>
+          it.kind !== "combo" &&
           it.product.id === item.product.id &&
           it.color === item.color &&
           it.talla === item.talla
@@ -550,7 +607,7 @@ export default function CatalogoMerch() {
   function changeQty(idx, qty) {
     if (qty < 1) return removeFromCart(idx);
     const next = Math.min(999, qty);
-    setCart((c) => c.map((it, i) => (i === idx ? { ...it, qty: next, price: priceFor(it.product, next) } : it)));
+    setCart((c) => c.map((it, i) => (i === idx && it.kind !== "combo" ? { ...it, qty: next, price: priceFor(it.product, next) } : it)));
   }
 
   function removeFromCart(idx) {
@@ -561,6 +618,16 @@ export default function CatalogoMerch() {
     if (!cart.length || !clienteNombre.trim() || !clienteTelefono.trim()) return;
 
     const lines = cart.map((it) => {
+      if (it.kind === "combo") {
+        const cname = lang === "en" ? it.combo.nombre_en : it.combo.nombre_es;
+        const head = `• ${t.comboWord}: ${cname} x${it.qty} — $${it.price * it.qty}`;
+        const detail = [];
+        for (let u = 1; u <= it.qty; u++) {
+          const mine = it.piezas.filter((p) => p.unidad === u).map((p) => pieceText(p, lang, t));
+          detail.push(`   ${it.qty > 1 ? `${t.comboWord} ${u}: ` : ""}${mine.join("; ")}`);
+        }
+        return [head, ...detail].join("\n");
+      }
       const nombre = lang === "en" ? it.product.nombre_en : it.product.nombre_es;
       const sizePart = it.talla !== "Única" ? `, ${t.size.toLowerCase()} ${it.talla}` : "";
       return `• ${nombre} — ${it.colorLabel}${sizePart} x${it.qty} — $${it.price * it.qty}`;
@@ -635,10 +702,17 @@ export default function CatalogoMerch() {
           {t.loadError}
         </p>
       )}
-      {catalogStatus === "ready" && filtered.length === 0 && (
+      {catalogStatus === "ready" && cat === "Ofertas" && (
+        <main className="px-5 pb-24 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 items-start">
+          {combos.map((c) => (
+            <ComboCard key={c.id} combo={c} lang={lang} onAdd={addToCart} />
+          ))}
+        </main>
+      )}
+      {catalogStatus === "ready" && cat !== "Ofertas" && filtered.length === 0 && (
         <p className="px-5 py-10 text-center text-sm text-neutral-500">{t.emptyCategory}</p>
       )}
-      {catalogStatus === "ready" && filtered.length > 0 && (
+      {catalogStatus === "ready" && cat !== "Ofertas" && filtered.length > 0 && (
         <main className="px-5 pb-24 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((p) => (
             <ProductCard key={p.id} product={p} lang={lang} t={t} onAdd={addToCart} />

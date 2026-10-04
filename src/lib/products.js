@@ -5,7 +5,7 @@ import { supabase } from "./supabase";
 // itself doesn't need to change: { id, categoria, nombre_en, nombre_es,
 // detalle_en, detalle_es, colores: string[], tallas: string[],
 // tramos: [{ min, max, precio }] }.
-function mapProducto(row) {
+export function mapProducto(row) {
   const sortedColores = [...row.producto_colores].sort((a, b) => a.orden - b.orden);
   const colores = sortedColores.map((pc) => pc.color_id);
 
@@ -51,14 +51,9 @@ function mapProducto(row) {
   };
 }
 
-// Fetches the public catalog (only activo = true products, enforced again
-// by RLS regardless of this filter) in one round trip using PostgREST's
-// embedded resource syntax instead of N+1 queries per product.
-export async function fetchProducts() {
-  const { data, error } = await supabase
-    .from("productos")
-    .select(
-      `
+// Columnas + relaciones que necesita mapProducto(); también las usa combos.js
+// para traer los productos que componen cada combo.
+export const PRODUCTO_FIELDS = `
       id,
       slug,
       categoria_slug,
@@ -70,8 +65,15 @@ export async function fetchProducts() {
       producto_colores ( orden, color_id, imagen_url ),
       producto_tallas ( orden, talla ),
       tramos_precio ( cantidad_min, cantidad_max, precio )
-    `
-    )
+    `;
+
+// Fetches the public catalog (only activo = true products, enforced again
+// by RLS regardless of this filter) in one round trip using PostgREST's
+// embedded resource syntax instead of N+1 queries per product.
+export async function fetchProducts() {
+  const { data, error } = await supabase
+    .from("productos")
+    .select(PRODUCTO_FIELDS)
     .eq("activo", true)
     .order("orden", { ascending: true });
 

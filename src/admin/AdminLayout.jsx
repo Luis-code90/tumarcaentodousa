@@ -17,6 +17,9 @@ export default function AdminLayout() {
           <NavLink to="/admin/merch" className={linkClass}>
             Merchandising
           </NavLink>
+          <NavLink to="/admin/ofertas" className={linkClass}>
+            Ofertas
+          </NavLink>
           <NavLink to="/admin/globos" className={linkClass}>
             Globos
           </NavLink>
