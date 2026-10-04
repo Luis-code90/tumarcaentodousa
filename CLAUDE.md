@@ -40,8 +40,8 @@ No hay tests, linter ni TypeScript.
 - Si falla el guardado en Supabase, el flujo sigue a WhatsApp igual (decisión de negocio: WhatsApp es el canal real).
 - Roles: `profiles.role` (`customer`/`admin`). Solo se promueve a admin a mano desde el dashboard de Supabase (`update profiles set role='admin'`); el front no puede cambiar `role` (GRANT por columna). No hay signup público.
 - `.env` está gitignoreado; plantilla en `.env.example`. Variables `VITE_*` van al bundle (son públicas por diseño: anon key, cloud name, preset). **Nunca** poner `service_role` ni API secret de Cloudinary en el front.
-- Dominio objetivo en las meta tags/sitemap/robots: `https://www.tumarcaentodousa.com`. Verificar que coincida con el dominio comprado antes de publicar.
-- Hosting: **Vercel** (config en `vercel.json`: rewrite SPA, headers de seguridad/CSP, cache de `/assets`). Dominio comprado en **Porkbun**; DNS apunta a Vercel. Si se agrega un host de imágenes o API nuevo, actualizar `img-src`/`connect-src` en la CSP de `vercel.json`.
+- Dominio objetivo en las meta tags/sitemap/robots: `https://tumarcaentodousa.com` (sin www; www redirige al apex). Verificar que coincida con el dominio comprado antes de publicar.
+- Hosting: el sitio en producción lo sirve **Netlify** (verificado 2026-10-04 por headers `Server: Netlify`), aunque también existe `vercel.json`. Netlify usa `public/_redirects` (rewrite SPA, **no borrar**: sin él /merch y /globos dan 404) y `public/_headers` (CSP y seguridad). Mantener `vercel.json` y `_headers` sincronizados. Dominio en Porkbun. Si se agrega un host de imágenes/API nuevo, actualizar `img-src`/`connect-src` en ambos.
 - Los previews de WhatsApp/redes leen solo el `index.html` estático, así que son iguales para las 3 rutas (ver `useDocumentMeta.js`).
 
 ## Preferencias de trabajo
