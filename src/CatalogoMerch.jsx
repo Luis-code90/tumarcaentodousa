@@ -52,6 +52,7 @@ const UI = {
     loading: "Loading catalog…",
     loadError: "We couldn't load the catalog. Please try again in a moment.",
     categories: {
+      Ofertas: "Deals",
       Remeras: "T-Shirts",
       Buzos: "Sweatshirts",
       Gorras: "Caps",
@@ -81,6 +82,7 @@ const UI = {
     loading: "Cargando catálogo…",
     loadError: "No pudimos cargar el catálogo. Probá de nuevo en un momento.",
     categories: {
+      Ofertas: "Ofertas",
       Remeras: "Camisetas",
       Buzos: "Suéteres",
       Gorras: "Gorras",
@@ -93,7 +95,7 @@ const UI = {
   },
 };
 
-const CATEGORY_KEYS = ["Remeras", "Buzos", "Gorras", "Mugs", "Tumblers", "Delantales"];
+const CATEGORY_KEYS = ["Ofertas", "Remeras", "Buzos", "Gorras", "Mugs", "Tumblers", "Delantales"];
 
 const SWATCHES = {
   negro: "#1a1a1a",
@@ -482,6 +484,9 @@ export default function CatalogoMerch() {
       .then((data) => {
         if (cancelled) return;
         setProducts(data);
+        // Si hay combos cargados, la pestaña Ofertas es la primera y la que
+        // se abre por defecto.
+        if (data.some((p) => p.categoria === "Ofertas")) setCat("Ofertas");
         setCatalogStatus("ready");
       })
       .catch((err) => {
@@ -506,7 +511,8 @@ export default function CatalogoMerch() {
   }, [catalogStatus, products]);
 
   const filtered = useMemo(() => products.filter((p) => p.categoria === cat), [products, cat]);
-  const cartCount = cart.reduce((s, it) => s + it.qty, 0);
+  const hasOffers = useMemo(() => products.some((p) => p.categoria === "Ofertas"), [products]);
+  const cartCount =cart.reduce((s, it) => s + it.qty, 0);
 
   useEffect(() => {
     try {
@@ -604,7 +610,7 @@ export default function CatalogoMerch() {
 
       {/* Category tabs */}
       <div className="px-5 py-4 flex gap-2 overflow-x-auto">
-        {CATEGORY_KEYS.map((c) => (
+        {CATEGORY_KEYS.filter((c) => c !== "Ofertas" || hasOffers).map((c) => (
           <button
             key={c}
             onClick={() => setCat(c)}
