@@ -18,7 +18,7 @@ const META = {
   es: {
     title: "TuMarcaEnTodo — Merchandising Personalizado y Decoración con Globos",
     description:
-      "Remeras, buzos, gorras, mugs, tumblers y delantales personalizados, más decoración con globos para eventos — todo coordinado por WhatsApp. Orlando, FL.",
+      "Camisetas, suéteres, gorras, mugs, tumblers y delantales personalizados, más decoración con globos para eventos — todo coordinado por WhatsApp. Orlando, FL.",
   },
 };
 
@@ -47,7 +47,7 @@ const CARDS = {
       icon: ShoppingBag,
       accent: "#E8952E",
       title: "Merchandising Personalizado",
-      body: "Remeras, buzos, gorras, mugs, tumblers y delantales — armá tu pedido y confirmalo por WhatsApp.",
+      body: "Camisetas, suéteres, gorras, mugs, tumblers y delantales — armá tu pedido y confirmalo por WhatsApp.",
       cta: "Ver el catálogo",
     },
     {

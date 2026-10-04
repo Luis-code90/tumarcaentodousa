@@ -8,8 +8,8 @@
 
 -- ---- Categorías (orden = orden de CATEGORY_KEYS en el front) ----
 insert into categorias (slug, nombre_en, nombre_es, orden) values
-  ('Remeras',    'T-Shirts',     'Remeras',     1),
-  ('Buzos',      'Sweatshirts',  'Buzos',       2),
+  ('Remeras',    'T-Shirts',     'Camisetas',   1),
+  ('Buzos',      'Sweatshirts',  'Suéteres',    2),
   ('Gorras',     'Caps',         'Gorras',      3),
   ('Mugs',       'Mugs',         'Mugs',        4),
   ('Tumblers',   'Tumblers',     'Tumblers',    5),

@@ -16,7 +16,7 @@ const META = {
   es: {
     title: "Merchandising Personalizado | TuMarcaEnTodo",
     description:
-      "Remeras, buzos, gorras, mugs, tumblers y delantales personalizados con precios por cantidad. Armá tu pedido y confirmalo por WhatsApp.",
+      "Camisetas, suéteres, gorras, mugs, tumblers y delantales personalizados con precios por cantidad. Armá tu pedido y confirmalo por WhatsApp.",
   },
 };
 
@@ -81,8 +81,8 @@ const UI = {
     loading: "Cargando catálogo…",
     loadError: "No pudimos cargar el catálogo. Probá de nuevo en un momento.",
     categories: {
-      Remeras: "Remeras",
-      Buzos: "Buzos",
+      Remeras: "Camisetas",
+      Buzos: "Suéteres",
       Gorras: "Gorras",
       Mugs: "Mugs",
       Tumblers: "Tumblers",

@@ -32,7 +32,7 @@ No hay tests, linter ni TypeScript.
 ## Convenciones y gotchas
 
 - Esquema en **español** (tablas/columnas: `productos`, `tramos_precio`, `paquetes_globos`...), textos bilingües como columnas `_en`/`_es` (no JSON).
-- Los slugs de categoría (`Remeras`, `Buzos`, `Gorras`, `Mugs`, `Tumblers`, `Delantales`) y de color (`negro`, `azul`...) están **hardcodeados también en el front** (`CATEGORY_KEYS`, `SWATCHES`, `COLOR_NAMES` en `CatalogoMerch.jsx`). Una categoría o color nuevo en la DB necesita cambio de código.
+- Los slugs de categoría (`Remeras`, `Buzos`, `Gorras`, `Mugs`, `Tumblers`, `Delantales`) y de color (`negro`, `azul`...) están **hardcodeados también en el front** (`CATEGORY_KEYS`, `SWATCHES`, `COLOR_NAMES` en `CatalogoMerch.jsx`). Una categoría o color nuevo en la DB necesita cambio de código. Los slugs `Remeras` y `Buzos` son identificadores internos y **no se renombran**; el texto visible en español es "Camisetas" y "Suéteres" (se cambia en `UI.es.categories` y en `categorias.nombre_es`). Vocabulario del cliente: camisetas (no remeras), suéteres (no buzos).
 - Talla `"Única"` es un valor centinela: oculta el selector de talla.
 - `tramos_precio.cantidad_max NULL` = tramo abierto (en el front se mapea a `Infinity`). Un `EXCLUDE` impide tramos superpuestos.
 - Carrito en `localStorage` (`tumarcaentodo_cart_v1`) guarda solo ids; se rehidrata y re-precia con el catálogo fresco.
